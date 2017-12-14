@@ -47,9 +47,48 @@ def unfold(X, mode):
 
     return G
 
-unfold(X, mode=2)
+G = unfold(X, mode=2)
 
 mode = 0
+
+def fold(G ,deph, rows, columns, mode):
+    """This is a tool function to fold a 3d tensor from an unfolded tensor.
+    i.e. fold(unfold(X, mode=0), (deph,rows,columns, mode = 0)) = X.
+    mode - should be equal unfold mode.
+    """
+    # deph, rows, columns = 2, 3, 4
+    rows_mat, columns_mat = G.shape
+    X = np.zeros((deph, rows, columns), float)
+
+    print('Shape of an input matrix: ', rows_mat, columns_mat)
+    if mode == 0:
+        # G = np.zeros((y, x*z), dtype=float)
+        print(G.shape)
+        k=0
+        for x_1 in range (0, deph):
+            for z_1 in range (0, columns):
+                k = k + 1
+                X[x_1, :, z_1] = G[:, k-1]
+
+    if mode == 1:
+        k=0
+        for i in range (0, deph):
+            for j in range (0, rows):
+                k=k+1
+                X[i, j, :] = G[:, k-1]
+
+    if mode == 2:
+
+        k=0
+        for i in range (0, columns):
+            for j in range (0, rows):
+                k=k+1
+                X[:, j, i] = G[:, k-1]
+
+    print('Output tensor shape: ', X.shape)
+    return X
+
+print(fold(G, 2,3,4, 2))
 
 
 # def tucker (rank, modes, iter):
