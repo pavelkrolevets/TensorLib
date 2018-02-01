@@ -4,6 +4,8 @@
 
 
 import numpy as np
+from sklearn.utils.extmath import randomized_svd
+
 
 def unfold(X, mode):
     """This is a tool function to unfold a 3d tensor. Doesnt acept tensors of higher dimentions
@@ -47,7 +49,7 @@ def unfold(X, mode):
 
 def fold(G ,deph, rows, columns, mode):
     """This is a tool function to fold a 3d tensor from an unfolded tensor.
-    i.e. fold(unfold(X, mode=0), (deph,rows,columns, mode = 0)) = X.
+    i.e. fold(unfold(X, mode=0) = X.
     mode - should be equal unfold mode.
     """
     # deph, rows, columns = 2, 3, 4
@@ -85,9 +87,11 @@ def fold(G ,deph, rows, columns, mode):
 def HOSVD (X):
 
     """
-    Computes then full HOSVD of a tensor in the form
-    A = S*U1*U2*U3 (in other words S mode-1 product U1, S mode-2 product U3, S mode-3 product U3)
+    Computes then full HOSVD of a tensor in the form A = S*U1*U2*U3
+    (in other words S mode-1 product U1, S mode-2 product U3, S mode-3 product U3)
+
     Input: any real 3D tensor
+
     Output: S - 3D tensor with singular values, U1, U2, U3 - corresponding singular vectors
 
     """
@@ -96,9 +100,15 @@ def HOSVD (X):
     X2 = unfold(X, mode=1)
     X3 = unfold(X, mode=2)
 
-    U1, _, _ = np.linalg.svd(X1, full_matrices=True)
-    U2, _, _ = np.linalg.svd(X2, full_matrices=True)
-    U3, _, _ = np.linalg.svd(X3, full_matrices=True)
+    U1, _, _ = randomized_svd(X1, n_components=X1.shape[0], n_oversamples=10, n_iter='auto',
+                              power_iteration_normalizer='auto', transpose='auto',
+                              flip_sign=True, random_state=42)
+    U2, _, _ = randomized_svd(X2, n_components=X2.shape[0], n_oversamples=10, n_iter='auto',
+                              power_iteration_normalizer='auto', transpose='auto',
+                              flip_sign=True, random_state=42)
+    U3, _, _ = randomized_svd(X3, n_components=X3.shape[0], n_oversamples=10, n_iter='auto',
+                              power_iteration_normalizer='auto', transpose='auto',
+                              flip_sign=True, random_state=42)
 
     S = np.dot(np.transpose(U2), unfold(X,1))
     S = fold(S, X.shape[0], X.shape[1], X.shape[2], 1)
@@ -109,17 +119,19 @@ def HOSVD (X):
 
     return S, U1, U2, U3
 
-def tensor_from_SVD(S, U1, U2, U3):
+def tensor_from_SVD(S, U1, U2, U3, X):
     """
-
+    Computes tensor back from its HOSVD.
 
     """
-    x , y , z = S.shape
-    A = np.dot(U2, unfold(S,1))
-    A = fold(A, x , y, z, 1)
-    A = np.dot(U1, unfold(A, 0))
-    A = fold(A, x, y, z, 0)
+    x , y , z = X.shape
+    A = np.dot(U1, unfold(S,0))
+    A = fold(A, x , y, z, 0)
+    A = np.dot(U2, unfold(A, 1))
+    A = fold(A, x, y, z, 1)
     A = np.dot(np.transpose(U3), unfold(A, 2))
     A = fold(A, x, y, z, 2)
 
     return A
+
+
